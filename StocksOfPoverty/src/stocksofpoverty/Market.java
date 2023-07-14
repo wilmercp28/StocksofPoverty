@@ -7,39 +7,50 @@ package stocksofpoverty;
 import java.awt.Color;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.text.DecimalFormat;
 import java.util.Random;
 import javax.swing.Timer;
 
 
 public class Market extends javax.swing.JFrame {
+    Random random = new Random();
     int day = 1;
     int month = 1;
     boolean gameIsPause = false;
     double percentageChange = 0;
     double percentageBaseNumber;
+    boolean breakingNews = false;
+    int daysAfterBreakingNews = 0;
+    int endBreakingNews = 90 + random.nextInt(121);
+    double breakingNewsTrend;
+  
+    
+    
+  
+  
     
     
    
     
-  
+
+Color defaultColor = new Color(184,207,229);
 BankAccount player = new BankAccount("Wilmer");
 
 
-Stocks aple = new Stocks("Aple", 100, 150, 0.5, 0,0,0);
-Stocks gogle = new Stocks("Gogle", 500, 800, 1,0,0,0);
-Stocks fakebook = new Stocks("FakeBook", 500, 800, 1,0,0,0);
-Stocks amazonia = new Stocks("amazonia", 500, 800, 1,0,0,0);
-Stocks anz = new Stocks("ANZ", 50, 80, 1.2,0,0,0);
-Stocks pns = new Stocks("P&S", 100, 400, 0.2,0,0,0);
-Stocks donalsj = new Stocks("DonalsJ", 100, 400, 0.1,0,0,0);
-Stocks nassp = new Stocks("NassP", 500, 800, 0.3,0,0,0);
+Stocks aple = new Stocks("Aple", 100, 150, 0.5, 0,0,0,false);
+Stocks gogle = new Stocks("Gogle", 500, 800, 1,0,0,0,false);
+Stocks fakebook = new Stocks("FakeBook", 500, 800, 1,0,0,0,false);
+Stocks amazonia = new Stocks("amazonia", 500, 800, 1,0,0,0,false);
+Stocks anz = new Stocks("ANZ", 50, 80, 1.2,0,0,0,false);
+Stocks pns = new Stocks("P&S", 100, 400, 0.2,0,0,0,false);
+Stocks donalsj = new Stocks("DonalsJ", 100, 400, 0.1,0,0,0,false);
+Stocks nassp = new Stocks("NassP", 500, 800, 0.3,0,0,0,false);
 Stocks[] stocks = {aple, gogle, fakebook, amazonia, anz, pns, donalsj, nassp};
 
 
-   
+  
     public Market() {
         initComponents();
-        
         updateTextFields();
         
      
@@ -55,6 +66,7 @@ Stocks[] stocks = {aple, gogle, fakebook, amazonia, anz, pns, donalsj, nassp};
            
          
            priceUpdate(stocks);
+           newsUpdate(stocks);
            
            dayMonthChanger();
            updateTextFields(); // Update the text fields in the GUI
@@ -62,6 +74,10 @@ Stocks[] stocks = {aple, gogle, fakebook, amazonia, anz, pns, donalsj, nassp};
            }
        };
        Timer timer = new Timer(StocksOfPoverty.gameSpeed, gameTicks);
+       
+       public Stocks[] getStocksList(){
+       return stocks;
+       }
        
     public void setTimerDelay(int delay) {
         timer.setDelay(delay);
@@ -71,24 +87,46 @@ Stocks[] stocks = {aple, gogle, fakebook, amazonia, anz, pns, donalsj, nassp};
     
     
     public void updateTextFields() {
-    updateTextField(stock1,price1, aple);
-    updateTextField(stock2,price2, gogle);
-    updateTextField(stock3,price3, fakebook);
-    updateTextField(stock4,price4, amazonia);
-    updateTextField(stock5,price5, anz);
-    updateTextField(stock6,price6, donalsj);
-    updateTextField(stock7,price7, nassp);
-    updateTextField(stock8,price8, pns);
+    updateTextField(stock1,price1, aple,sharesOwn1);
+    updateTextField(stock2,price2, gogle,sharesOwn2);
+    updateTextField(stock3,price3, fakebook,sharesOwn3);
+    updateTextField(stock4,price4, amazonia,sharesOwn4);
+    updateTextField(stock5,price5, anz,sharesOwn5);
+    updateTextField(stock6,price6, donalsj,sharesOwn6);
+    updateTextField(stock7,price7, nassp,sharesOwn7);
+    updateTextField(stock8,price8, pns,sharesOwn8);
+    unRealizedBlanceText.setText("UnrealizedGains " +String.valueOf(unRealizedGains()));
+    
     
     playerBalance.setText("Balance "+String.valueOf(player.balance));
     accountBalance.setText("Account Balance " + player.balance);
+    
+    
+    
+    
 }
+    
+    private double unRealizedGains(){
+    double unRealizedBalance = 0;
+    for(Stocks stocks : stocks){
+    unRealizedBalance += stocks.stockPrice * stocks.stockShares;
+    
+    }
+    DecimalFormat decimalFormat = new DecimalFormat("#0.00");
+    String formattedBalance = decimalFormat.format(unRealizedBalance);
+    double roundedBalance = Double.parseDouble(formattedBalance);
+    return roundedBalance;
+    }
+    
+    
+   
 
-private void updateTextField(javax.swing.JTextField stockName, javax.swing.JTextField stockPrice, Stocks stock) {
+private void updateTextField(javax.swing.JTextField stockName, javax.swing.JTextField stockPrice, Stocks stock, javax.swing.JLabel stockShares) {
     String formattedPrice = String.format("%.2f", stock.stockPrice);
     double absoluteChange = Math.abs(stock.percentageChange);
     String formattedChange = String.format("%.2f", absoluteChange);
     stockName.setText(stock.stockName);
+    stockShares.setText(String.valueOf(stock.stockShares));
 
     if (stock.percentageChange < 0) {
         stockPrice.setForeground(new Color(150, 0, 0)); // Dark red
@@ -97,6 +135,8 @@ private void updateTextField(javax.swing.JTextField stockName, javax.swing.JText
     }
     
     stockPrice.setText(formattedPrice + "  % " + formattedChange);
+    
+    
 }
     
     public void dayMonthChanger(){
@@ -123,6 +163,29 @@ private void updateTextField(javax.swing.JTextField stockName, javax.swing.JText
     private boolean shouldRollForTrendChange() {
         return day == 30;
 }
+    
+    public void newsUpdate(Stocks[] stocks){
+        Random random = new Random();
+        int randomIndex = random.nextInt(stocks.length);
+        Stocks randomStock = stocks[randomIndex];
+        if(!breakingNews){
+        NewsFeed news = new NewsFeed(randomStock.stockName,"",breakingNews,randomStock.trend);
+        newsFeed.setText(news.newsText);
+        breakingNews = news.breakingNews;
+        breakingNewsTrend = news.stockTrend;
+        randomStock.isBreakingNews = news.breakingNews;
+        tabsChangeColors();
+        
+        }
+        if (breakingNews && daysAfterBreakingNews < endBreakingNews){
+            daysAfterBreakingNews++;
+        } else if (breakingNews && daysAfterBreakingNews == endBreakingNews){
+        daysAfterBreakingNews = 0;
+        breakingNews = false;
+        
+}
+    }
+ 
 
 public void priceUpdate(Stocks[] stocks) {
     for (Stocks stock : stocks) {
@@ -133,10 +196,15 @@ public void priceUpdate(Stocks[] stocks) {
         double randomPrice = generateRandomPrice(mean, standardDeviation);
 
         // Add a trend component to the stock price
-        double trend = shouldRollForTrendChange() ? getRandomTrend() : stock.trend;
-
+       double trend = stock.trend;
+       if(!stock.isBreakingNews){
+        trend = shouldRollForTrendChange() ? getRandomTrend() : stock.trend;
+        } else if(stock.isBreakingNews){
+        trend = breakingNewsTrend;
+        }
+        
         double newPrice = randomPrice + trend;
-
+        
         // Update the stock price
         if (newPrice < 0.1) {
             stock.stockPrice = 0.1;
@@ -238,9 +306,16 @@ private double getRandomTrend() {
         timerRestart();
         }
     }
+    private void tabsChangeColors(){
+    int tabIndexNews = 3;
+    Color newColor = Color.YELLOW; 
 
-
-
+    int selectedIndex = stocksTab.getSelectedIndex();
+    if (selectedIndex != tabIndexNews ) {
+        stocksTab.setBackgroundAt(tabIndexNews, newColor);
+    } 
+        
+    }
 
 
     /**
@@ -287,21 +362,37 @@ private double getRandomTrend() {
         sell7 = new javax.swing.JButton();
         sell8 = new javax.swing.JButton();
         buy8 = new javax.swing.JButton();
-        jLabel2 = new javax.swing.JLabel();
+        sharesOwn1 = new javax.swing.JLabel();
+        sharesOwn2 = new javax.swing.JLabel();
+        sharesOwn3 = new javax.swing.JLabel();
+        sharesOwn4 = new javax.swing.JLabel();
+        sharesOwn5 = new javax.swing.JLabel();
+        sharesOwn6 = new javax.swing.JLabel();
+        sharesOwn7 = new javax.swing.JLabel();
+        sharesOwn8 = new javax.swing.JLabel();
         jPanel2 = new javax.swing.JPanel();
         jPanel3 = new javax.swing.JPanel();
         jLabel1 = new javax.swing.JLabel();
         accountBalance = new javax.swing.JLabel();
         jPanel4 = new javax.swing.JPanel();
+        jScrollPane1 = new javax.swing.JScrollPane();
+        newsFeed = new javax.swing.JTextArea();
         gameSpeedPlus = new javax.swing.JButton();
         gameSpeedMinus = new javax.swing.JButton();
         gameSpeedLabel = new javax.swing.JLabel();
         pauseButtom = new javax.swing.JButton();
         playerBalance = new javax.swing.JLabel();
+        unRealizedBlanceText = new javax.swing.JLabel();
 
         jButton1.setText("jButton1");
 
         setDefaultCloseOperation(javax.swing.WindowConstants.EXIT_ON_CLOSE);
+
+        stocksTab.addMouseListener(new java.awt.event.MouseAdapter() {
+            public void mouseClicked(java.awt.event.MouseEvent evt) {
+                stocksTabMouseClicked(evt);
+            }
+        });
 
         stock1.setEditable(false);
         stock1.setText("jTextField1");
@@ -479,7 +570,21 @@ private double getRandomTrend() {
             }
         });
 
-        jLabel2.setText("Shares");
+        sharesOwn1.setText("jLabel2");
+
+        sharesOwn2.setText("jLabel3");
+
+        sharesOwn3.setText("jLabel4");
+
+        sharesOwn4.setText("jLabel5");
+
+        sharesOwn5.setText("jLabel6");
+
+        sharesOwn6.setText("jLabel7");
+
+        sharesOwn7.setText("jLabel8");
+
+        sharesOwn8.setText("jLabel9");
 
         javax.swing.GroupLayout jPanel1Layout = new javax.swing.GroupLayout(jPanel1);
         jPanel1.setLayout(jPanel1Layout);
@@ -505,9 +610,17 @@ private double getRandomTrend() {
                     .addComponent(price7, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
                     .addComponent(price8, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
                     .addComponent(price1, javax.swing.GroupLayout.DEFAULT_SIZE, 110, Short.MAX_VALUE))
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                .addComponent(jLabel2)
-                .addGap(3, 3, 3)
+                .addGap(18, 18, 18)
+                .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                    .addComponent(sharesOwn1)
+                    .addComponent(sharesOwn2)
+                    .addComponent(sharesOwn3)
+                    .addComponent(sharesOwn4)
+                    .addComponent(sharesOwn5)
+                    .addComponent(sharesOwn6)
+                    .addComponent(sharesOwn7)
+                    .addComponent(sharesOwn8))
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, 30, Short.MAX_VALUE)
                 .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING, false)
                     .addComponent(buy1, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
                     .addComponent(buy2, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
@@ -527,7 +640,7 @@ private double getRandomTrend() {
                     .addComponent(sell6, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
                     .addComponent(sell7, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
                     .addComponent(sell8, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
-                .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
+                .addContainerGap())
         );
 
         jPanel1Layout.linkSize(javax.swing.SwingConstants.HORIZONTAL, new java.awt.Component[] {buy1, buy2, buy3, buy4, buy5, buy6, buy7, buy8, price1, price2, price3, price4, price5, price6, price7, price8, sell1, sell2, sell3, sell4, sell5, sell6, sell7, sell8, stock1, stock2, stock3, stock4, stock5, stock6, stock7, stock8});
@@ -558,55 +671,58 @@ private double getRandomTrend() {
                             .addComponent(sell5)
                             .addComponent(buy5))
                         .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                        .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                            .addGroup(jPanel1Layout.createSequentialGroup()
-                                .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
-                                    .addComponent(buy6)
-                                    .addComponent(sell6))
-                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                                .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
-                                    .addComponent(sell7)
-                                    .addComponent(buy7))
-                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED))
-                            .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, jPanel1Layout.createSequentialGroup()
-                                .addComponent(jLabel2)
-                                .addGap(21, 21, 21)))
+                        .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                            .addComponent(buy6)
+                            .addComponent(sell6))
+                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                        .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                            .addComponent(sell7)
+                            .addComponent(buy7))
+                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                         .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
                             .addComponent(buy8)
                             .addComponent(sell8)))
                     .addGroup(jPanel1Layout.createSequentialGroup()
                         .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
                             .addComponent(stock1, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                            .addComponent(price1, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
+                            .addComponent(price1, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                            .addComponent(sharesOwn1))
                         .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                         .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
                             .addComponent(stock2, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                            .addComponent(price2, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
+                            .addComponent(price2, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                            .addComponent(sharesOwn2))
                         .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                         .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
                             .addComponent(stock3, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                            .addComponent(price3, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
+                            .addComponent(price3, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                            .addComponent(sharesOwn3))
                         .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                         .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
                             .addComponent(stock4, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                            .addComponent(price4, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
+                            .addComponent(price4, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                            .addComponent(sharesOwn4))
                         .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                         .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
                             .addComponent(stock5, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                            .addComponent(price5, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
+                            .addComponent(price5, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                            .addComponent(sharesOwn5))
                         .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                         .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
                             .addComponent(stock6, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                            .addComponent(price6, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
+                            .addComponent(price6, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                            .addComponent(sharesOwn6))
                         .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                         .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
                             .addComponent(stock7, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                            .addComponent(price7, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
+                            .addComponent(price7, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                            .addComponent(sharesOwn7))
                         .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                         .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
                             .addComponent(stock8, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                            .addComponent(price8, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))))
-                .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
+                            .addComponent(price8, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                            .addComponent(sharesOwn8))))
+                .addContainerGap(15, Short.MAX_VALUE))
         );
 
         jPanel1Layout.linkSize(javax.swing.SwingConstants.VERTICAL, new java.awt.Component[] {buy1, buy2, buy3, buy4, buy5, buy6, buy7, buy8, price1, price2, price3, price4, price5, price6, price7, price8, sell1, sell2, sell3, sell4, sell5, sell6, sell7, sell8, stock1, stock2, stock3, stock4, stock5, stock6, stock7, stock8});
@@ -617,11 +733,11 @@ private double getRandomTrend() {
         jPanel2.setLayout(jPanel2Layout);
         jPanel2Layout.setHorizontalGroup(
             jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGap(0, 504, Short.MAX_VALUE)
+            .addGap(0, 543, Short.MAX_VALUE)
         );
         jPanel2Layout.setVerticalGroup(
             jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGap(0, 232, Short.MAX_VALUE)
+            .addGap(0, 247, Short.MAX_VALUE)
         );
 
         stocksTab.addTab("tab2", jPanel2);
@@ -639,7 +755,7 @@ private double getRandomTrend() {
                 .addContainerGap()
                 .addGroup(jPanel3Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
                     .addComponent(jLabel1, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                    .addComponent(accountBalance, javax.swing.GroupLayout.DEFAULT_SIZE, 492, Short.MAX_VALUE))
+                    .addComponent(accountBalance, javax.swing.GroupLayout.DEFAULT_SIZE, 531, Short.MAX_VALUE))
                 .addContainerGap())
         );
         jPanel3Layout.setVerticalGroup(
@@ -649,23 +765,37 @@ private double getRandomTrend() {
                 .addComponent(jLabel1)
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
                 .addComponent(accountBalance)
-                .addContainerGap(182, Short.MAX_VALUE))
+                .addContainerGap(197, Short.MAX_VALUE))
         );
 
         stocksTab.addTab("Bank", jPanel3);
+
+        newsFeed.setEditable(false);
+        newsFeed.setColumns(20);
+        newsFeed.setFont(new java.awt.Font("Segoe UI", 0, 18)); // NOI18N
+        newsFeed.setRows(5);
+        newsFeed.setText("Hello\n");
+        newsFeed.setAutoscrolls(false);
+        jScrollPane1.setViewportView(newsFeed);
 
         javax.swing.GroupLayout jPanel4Layout = new javax.swing.GroupLayout(jPanel4);
         jPanel4.setLayout(jPanel4Layout);
         jPanel4Layout.setHorizontalGroup(
             jPanel4Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGap(0, 504, Short.MAX_VALUE)
+            .addGroup(jPanel4Layout.createSequentialGroup()
+                .addContainerGap()
+                .addComponent(jScrollPane1)
+                .addContainerGap())
         );
         jPanel4Layout.setVerticalGroup(
             jPanel4Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGap(0, 232, Short.MAX_VALUE)
+            .addGroup(jPanel4Layout.createSequentialGroup()
+                .addContainerGap()
+                .addComponent(jScrollPane1)
+                .addContainerGap())
         );
 
-        stocksTab.addTab("tab4", jPanel4);
+        stocksTab.addTab("News", jPanel4);
 
         gameSpeedPlus.setText("+");
         gameSpeedPlus.addMouseListener(new java.awt.event.MouseAdapter() {
@@ -692,6 +822,8 @@ private double getRandomTrend() {
 
         playerBalance.setText("jLabel1");
 
+        unRealizedBlanceText.setText("jLabel2");
+
         javax.swing.GroupLayout layout = new javax.swing.GroupLayout(getContentPane());
         getContentPane().setLayout(layout);
         layout.setHorizontalGroup(
@@ -701,8 +833,10 @@ private double getRandomTrend() {
                     .addComponent(stocksTab)
                     .addGroup(layout.createSequentialGroup()
                         .addContainerGap()
-                        .addComponent(playerBalance, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
+                        .addComponent(playerBalance, javax.swing.GroupLayout.PREFERRED_SIZE, 120, javax.swing.GroupLayout.PREFERRED_SIZE)
+                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                        .addComponent(unRealizedBlanceText, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                        .addGap(18, 18, 18)
                         .addComponent(pauseButtom)
                         .addGap(18, 18, 18)
                         .addComponent(gameSpeedLabel)
@@ -715,14 +849,15 @@ private double getRandomTrend() {
         layout.setVerticalGroup(
             layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(layout.createSequentialGroup()
-                .addComponent(stocksTab, javax.swing.GroupLayout.PREFERRED_SIZE, 263, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, 21, Short.MAX_VALUE)
+                .addComponent(stocksTab)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                 .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
                     .addComponent(gameSpeedPlus)
                     .addComponent(gameSpeedMinus)
                     .addComponent(gameSpeedLabel)
                     .addComponent(pauseButtom)
-                    .addComponent(playerBalance))
+                    .addComponent(playerBalance)
+                    .addComponent(unRealizedBlanceText))
                 .addContainerGap())
         );
 
@@ -740,6 +875,78 @@ private double getRandomTrend() {
     private void pauseButtomMouseClicked(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_pauseButtomMouseClicked
     pauseGame();
     }//GEN-LAST:event_pauseButtomMouseClicked
+
+    private void buy8MouseClicked(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_buy8MouseClicked
+        player.balance = player.buySell(nassp, true);
+        System.out.println(aple.stockShares);
+        updateTextFields();
+    }//GEN-LAST:event_buy8MouseClicked
+
+    private void sell8MouseClicked(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_sell8MouseClicked
+        player.balance = player.buySell(nassp, false);
+        System.out.println(aple.stockShares);
+        updateTextFields();
+    }//GEN-LAST:event_sell8MouseClicked
+
+    private void sell7MouseClicked(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_sell7MouseClicked
+        player.balance = player.buySell(donalsj, false);
+        System.out.println(aple.stockShares);
+        updateTextFields();
+    }//GEN-LAST:event_sell7MouseClicked
+
+    private void buy7MouseClicked(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_buy7MouseClicked
+        player.balance = player.buySell(donalsj, true);
+        System.out.println(aple.stockShares);
+        updateTextFields();
+    }//GEN-LAST:event_buy7MouseClicked
+
+    private void sell6MouseClicked(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_sell6MouseClicked
+        player.balance = player.buySell(pns, false);
+        System.out.println(aple.stockShares);
+        updateTextFields();
+    }//GEN-LAST:event_sell6MouseClicked
+
+    private void buy6MouseClicked(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_buy6MouseClicked
+        player.balance = player.buySell(pns, true);
+        System.out.println(aple.stockShares);
+        updateTextFields();
+    }//GEN-LAST:event_buy6MouseClicked
+
+    private void sell5MouseClicked(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_sell5MouseClicked
+        player.balance = player.buySell(anz, false);
+        System.out.println(aple.stockShares);
+        updateTextFields();
+    }//GEN-LAST:event_sell5MouseClicked
+
+    private void buy5MouseClicked(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_buy5MouseClicked
+        player.balance = player.buySell(anz, true);
+        System.out.println(aple.stockShares);
+        updateTextFields();
+    }//GEN-LAST:event_buy5MouseClicked
+
+    private void buy4MouseClicked(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_buy4MouseClicked
+        player.balance = player.buySell(amazonia, true);
+        System.out.println(amazonia.stockShares);
+        updateTextFields();
+    }//GEN-LAST:event_buy4MouseClicked
+
+    private void sell4MouseClicked(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_sell4MouseClicked
+        player.balance = player.buySell(amazonia, false);
+        System.out.println(amazonia.stockShares);
+        updateTextFields();
+    }//GEN-LAST:event_sell4MouseClicked
+
+    private void sell3MouseClicked(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_sell3MouseClicked
+        player.balance = player.buySell(fakebook, false);
+        System.out.println(fakebook.stockShares);
+        updateTextFields();
+    }//GEN-LAST:event_sell3MouseClicked
+
+    private void buy3MouseClicked(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_buy3MouseClicked
+        player.balance = player.buySell(fakebook, true);
+        System.out.println(fakebook.stockShares);
+        updateTextFields();
+    }//GEN-LAST:event_buy3MouseClicked
 
     private void sell2MouseClicked(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_sell2MouseClicked
         player.balance = player.buySell(gogle, false);
@@ -765,77 +972,10 @@ private double getRandomTrend() {
         updateTextFields();
     }//GEN-LAST:event_sell1MouseClicked
 
-    private void buy3MouseClicked(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_buy3MouseClicked
-        player.balance = player.buySell(fakebook, true);
-        System.out.println(fakebook.stockShares);
-        updateTextFields();
-    }//GEN-LAST:event_buy3MouseClicked
-
-    private void sell3MouseClicked(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_sell3MouseClicked
-        player.balance = player.buySell(fakebook, false);
-        System.out.println(fakebook.stockShares);
-        updateTextFields();
-    }//GEN-LAST:event_sell3MouseClicked
-
-    private void sell4MouseClicked(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_sell4MouseClicked
-        player.balance = player.buySell(amazonia, false);
-        System.out.println(amazonia.stockShares);
-        updateTextFields();
-    }//GEN-LAST:event_sell4MouseClicked
-
-    private void buy4MouseClicked(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_buy4MouseClicked
-        player.balance = player.buySell(amazonia, true);
-        System.out.println(amazonia.stockShares);
-        updateTextFields();
-    }//GEN-LAST:event_buy4MouseClicked
-
-    private void buy5MouseClicked(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_buy5MouseClicked
-        player.balance = player.buySell(anz, true);
-        System.out.println(aple.stockShares);
-        updateTextFields();
-    }//GEN-LAST:event_buy5MouseClicked
-
-    private void sell5MouseClicked(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_sell5MouseClicked
-        player.balance = player.buySell(anz, false);
-        System.out.println(aple.stockShares);
-        updateTextFields();
-    }//GEN-LAST:event_sell5MouseClicked
-
-    private void buy6MouseClicked(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_buy6MouseClicked
-        player.balance = player.buySell(pns, true);
-        System.out.println(aple.stockShares);
-        updateTextFields();
-    }//GEN-LAST:event_buy6MouseClicked
-
-    private void sell6MouseClicked(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_sell6MouseClicked
-        player.balance = player.buySell(pns, false);
-        System.out.println(aple.stockShares);
-        updateTextFields();
-    }//GEN-LAST:event_sell6MouseClicked
-
-    private void buy7MouseClicked(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_buy7MouseClicked
-        player.balance = player.buySell(donalsj, true);
-        System.out.println(aple.stockShares);
-        updateTextFields();
-    }//GEN-LAST:event_buy7MouseClicked
-
-    private void sell7MouseClicked(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_sell7MouseClicked
-        player.balance = player.buySell(donalsj, false);
-        System.out.println(aple.stockShares);
-        updateTextFields();
-    }//GEN-LAST:event_sell7MouseClicked
-
-    private void sell8MouseClicked(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_sell8MouseClicked
-        player.balance = player.buySell(nassp, false);
-        System.out.println(aple.stockShares);
-        updateTextFields();
-    }//GEN-LAST:event_sell8MouseClicked
-
-    private void buy8MouseClicked(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_buy8MouseClicked
-        player.balance = player.buySell(nassp, true);
-        System.out.println(aple.stockShares);
-        updateTextFields();
-    }//GEN-LAST:event_buy8MouseClicked
+    private void stocksTabMouseClicked(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_stocksTabMouseClicked
+        // TODO add your handling code here:
+        stocksTab.setBackgroundAt(3, defaultColor);
+    }//GEN-LAST:event_stocksTabMouseClicked
 
     /**
      * @param args the command line arguments
@@ -888,11 +1028,12 @@ private double getRandomTrend() {
     private javax.swing.JButton gameSpeedPlus;
     private javax.swing.JButton jButton1;
     private javax.swing.JLabel jLabel1;
-    private javax.swing.JLabel jLabel2;
     private javax.swing.JPanel jPanel1;
     private javax.swing.JPanel jPanel2;
     private javax.swing.JPanel jPanel3;
     private javax.swing.JPanel jPanel4;
+    private javax.swing.JScrollPane jScrollPane1;
+    private javax.swing.JTextArea newsFeed;
     private javax.swing.JButton pauseButtom;
     private javax.swing.JLabel playerBalance;
     private javax.swing.JTextField price1;
@@ -911,6 +1052,14 @@ private double getRandomTrend() {
     private javax.swing.JButton sell6;
     private javax.swing.JButton sell7;
     private javax.swing.JButton sell8;
+    private javax.swing.JLabel sharesOwn1;
+    private javax.swing.JLabel sharesOwn2;
+    private javax.swing.JLabel sharesOwn3;
+    private javax.swing.JLabel sharesOwn4;
+    private javax.swing.JLabel sharesOwn5;
+    private javax.swing.JLabel sharesOwn6;
+    private javax.swing.JLabel sharesOwn7;
+    private javax.swing.JLabel sharesOwn8;
     private javax.swing.JTextField stock1;
     private javax.swing.JTextField stock2;
     private javax.swing.JTextField stock3;
@@ -920,6 +1069,7 @@ private double getRandomTrend() {
     private javax.swing.JTextField stock7;
     private javax.swing.JTextField stock8;
     private javax.swing.JTabbedPane stocksTab;
+    private javax.swing.JLabel unRealizedBlanceText;
     // End of variables declaration//GEN-END:variables
 
 
