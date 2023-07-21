@@ -7,22 +7,23 @@ package stocksofpoverty;
 import java.awt.Color;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.awt.event.KeyEvent;
+import static java.lang.Double.parseDouble;
 import java.text.DecimalFormat;
 import java.util.Random;
 import javax.swing.Timer;
 
 
-public class Market extends javax.swing.JFrame {
+public final class Market extends javax.swing.JFrame {
     Random random = new Random();
     int day = 1;
     int month = 1;
-    boolean gameIsPause = false;
-    double percentageChange = 0;
-    double percentageBaseNumber;
-    boolean breakingNews = false;
+    boolean gameIsPause = true;
+   
     int daysAfterBreakingNews = 0;
-    int endBreakingNews = 90 + random.nextInt(121);
     double breakingNewsTrend;
+    boolean devMode = true;
+    Stocks breakingNewsStock;
   
     
     
@@ -37,47 +38,46 @@ Color defaultColor = new Color(184,207,229);
 BankAccount player = new BankAccount("Wilmer");
 
 
-Stocks aple = new Stocks("Aple", 100, 150, 0.5, 0,0,0,false);
-Stocks gogle = new Stocks("Gogle", 500, 800, 1,0,0,0,false);
-Stocks fakebook = new Stocks("FakeBook", 500, 800, 1,0,0,0,false);
-Stocks amazonia = new Stocks("amazonia", 500, 800, 1,0,0,0,false);
-Stocks anz = new Stocks("ANZ", 50, 80, 1.2,0,0,0,false);
-Stocks pns = new Stocks("P&S", 100, 400, 0.2,0,0,0,false);
-Stocks donalsj = new Stocks("DonalsJ", 100, 400, 0.1,0,0,0,false);
-Stocks nassp = new Stocks("NassP", 500, 800, 0.3,0,0,0,false);
-Stocks[] stocks = {aple, gogle, fakebook, amazonia, anz, pns, donalsj, nassp};
+Stocks aple = new Stocks("Aple", 100, 150, 0.5, 0,0,0,false,0);
+Stocks gogle = new Stocks("Gogle", 500, 800, 1,0,0,0,false,0);
+Stocks fakebook = new Stocks("FakeBook", 500, 800, 1,0,0,0,false,0);
+Stocks amazonia = new Stocks("amazonia", 500, 800, 1,0,0,0,false,0);
+Stocks anz = new Stocks("ANZ", 50, 80, 1.2,0,0,0,false,0);
+Stocks pns = new Stocks("P&S", 100, 400, 0.2,0,0,0,false,0);
+Stocks donalsj = new Stocks("DonalsJ", 100, 400, 0.1,0,0,0,false,0);
+Stocks nassp = new Stocks("NassP", 500, 800, 0.3,0,0,0,false,0);
+Stocks[] stocks = {aple, gogle, fakebook, amazonia, anz, donalsj,nassp,pns};
 
 
   
     public Market() {
         initComponents();
+        
+        newsUpdate(stocks);
         updateTextFields();
         
+
+       
      
        
     }
     ActionListener gameTicks = new ActionListener(){    
            @Override
            public void actionPerformed(ActionEvent evt){
-           System.out.println("Trend is of aple is  " + aple.trend);
-           System.out.println("Trend is of gogle is  " + gogle.trend);
-           System.out.println(StocksOfPoverty.gameSpeed);
-           System.out.println("Day " + day + "Month" + month);
-           
-         
            priceUpdate(stocks);
-           newsUpdate(stocks);
-           
            dayMonthChanger();
+           newsCounter();
            updateTextFields(); // Update the text fields in the GUI
-           
+           if(day == 1){
+           player.balance = player.monthlyInteres(player.loan, player.interests);
            }
-       };
-       Timer timer = new Timer(StocksOfPoverty.gameSpeed, gameTicks);
+           }
+           };
+           Timer timer = new Timer(StocksOfPoverty.gameSpeed, gameTicks);
+
        
-       public Stocks[] getStocksList(){
-       return stocks;
-       }
+      
+    
        
     public void setTimerDelay(int delay) {
         timer.setDelay(delay);
@@ -98,13 +98,18 @@ Stocks[] stocks = {aple, gogle, fakebook, amazonia, anz, pns, donalsj, nassp};
     unRealizedBlanceText.setText("UnrealizedGains " +String.valueOf(unRealizedGains()));
     
     
-    playerBalance.setText("Balance "+String.valueOf(player.balance));
+    loan.setText("Loan: "+player.loan+"   ("+player.creditLimit+")");
+    monthlyInterestRate.setText("Monthly interest rate: " +player.interests + "%");
+    String formattedPlayerBalance = String.format("%5.2f", player.balance);
+    playerBalance.setText("Balance "+String.valueOf(formattedPlayerBalance));
     accountBalance.setText("Account Balance " + player.balance);
+   
     
     
     
+    }
     
-}
+    
     
     private double unRealizedGains(){
     double unRealizedBalance = 0;
@@ -122,9 +127,9 @@ Stocks[] stocks = {aple, gogle, fakebook, amazonia, anz, pns, donalsj, nassp};
    
 
 private void updateTextField(javax.swing.JTextField stockName, javax.swing.JTextField stockPrice, Stocks stock, javax.swing.JLabel stockShares) {
-    String formattedPrice = String.format("%.2f", stock.stockPrice);
+    String formattedPrice = String.format("%5.2f", stock.stockPrice); // Using a width of 10 for the price
     double absoluteChange = Math.abs(stock.percentageChange);
-    String formattedChange = String.format("%.2f", absoluteChange);
+    String formattedChange = String.format("%3.1f", absoluteChange); // Using a width of 6 for the percentage change
     stockName.setText(stock.stockName);
     stockShares.setText(String.valueOf(stock.stockShares));
 
@@ -134,56 +139,79 @@ private void updateTextField(javax.swing.JTextField stockName, javax.swing.JText
         stockPrice.setForeground(new Color(0, 150, 0)); // Dark green
     }
     
+    // Use 'stock.stockPrice' as the new price and 'mean' (original stock price) as the base number
     stockPrice.setText(formattedPrice + "  % " + formattedChange);
-    
-    
 }
     
     public void dayMonthChanger(){
-      if (day <= 30){
-      day++; 
-      } else {
-      day = 1;
+      if (day < 30) {
+        day++;
+    } else {
+        day = 1;
+
+        if (month < 12) {
+            month++;
+        } else {
+            month = 1;
+        }
+    
       }
-      if (day == 1){
-      month++;
-      } else {
-      month = 1;
+      
+      if(devMode){
+       stock1.setToolTipText(stocks[0].stockName+"Trend: " + String.valueOf(stocks[0].trend)+"Is Breaking News: "+stocks[0].isBreakingNews);
+       stock2.setToolTipText(stocks[1].stockName+"Trend: " + String.valueOf(stocks[1].trend)+"Is Breaking News: "+stocks[1].isBreakingNews);
+       stock3.setToolTipText(stocks[2].stockName+"Trend: " + String.valueOf(stocks[2].trend)+"Is Breaking News: "+stocks[2].isBreakingNews);
+       stock4.setToolTipText(stocks[3].stockName+"Trend: " + String.valueOf(stocks[3].trend)+"Is Breaking News: "+stocks[3].isBreakingNews);
+       stock5.setToolTipText(stocks[4].stockName+"Trend: " + String.valueOf(stocks[4].trend)+"Is Breaking News: "+stocks[4].isBreakingNews);
+       stock6.setToolTipText(stocks[5].stockName+"Trend: " + String.valueOf(stocks[5].trend)+"Is Breaking News: "+stocks[5].isBreakingNews);
+       stock7.setToolTipText(stocks[6].stockName+"Trend: " + String.valueOf(stocks[6].trend)+"Is Breaking News: "+stocks[6].isBreakingNews);
+       stock8.setToolTipText(stocks[7].stockName+"Trend: " + String.valueOf(stocks[7].trend)+"Is Breaking News: "+stocks[7].isBreakingNews);
       }
+      
+      
     
     }
     
     public double percentageChanger(double baseNumber, double newNumber){
     double difference = newNumber - baseNumber;
-    double percentage = difference / baseNumber;
-    return percentage * 100;
-    
+    double percentage = (difference / Math.abs(baseNumber)) * 100;
+    return percentage;
     }
     
     private boolean shouldRollForTrendChange() {
         return day == 30;
 }
     
-    public void newsUpdate(Stocks[] stocks){
-        Random random = new Random();
-        int randomIndex = random.nextInt(stocks.length);
-        Stocks randomStock = stocks[randomIndex];
-        if(!breakingNews){
-        NewsFeed news = new NewsFeed(randomStock.stockName,"",breakingNews,randomStock.trend);
-        newsFeed.setText(news.newsText);
-        breakingNews = news.breakingNews;
-        breakingNewsTrend = news.stockTrend;
-        randomStock.isBreakingNews = news.breakingNews;
-        tabsChangeColors();
-        
-        }
-        if (breakingNews && daysAfterBreakingNews < endBreakingNews){
-            daysAfterBreakingNews++;
-        } else if (breakingNews && daysAfterBreakingNews == endBreakingNews){
+    private void newsCounter(){
+        int randomNumber = random.nextInt(101) + 100;
+        if(daysAfterBreakingNews < randomNumber){
+        daysAfterBreakingNews++;
+        System.out.println(daysAfterBreakingNews);
+          } else if(daysAfterBreakingNews > randomNumber) {
+        pauseGame();
+        breakingNewsStock.isBreakingNews = false;
+        breakingNewsStock.trend = 0;
+        newsUpdate(stocks);
+        breakingNewsStock.isBreakingNews = true;
         daysAfterBreakingNews = 0;
-        breakingNews = false;
-        
-}
+        }
+    
+    
+    }
+    
+    public void newsUpdate(Stocks[] stocks){
+         int randomIndex = random.nextInt(stocks.length);
+    Stocks randomStock = stocks[randomIndex];
+    NewsFeed news = new NewsFeed(randomStock.stockName, "", randomStock.isBreakingNews, randomStock.trend);
+    newsFeed.setText(news.newsText);
+    randomStock.trend = news.stockTrend;
+    randomStock.isBreakingNews = news.breakingNews;
+    breakingNewsStock = randomStock;
+    System.out.println(breakingNewsStock.isBreakingNews);
+    System.out.println(breakingNewsStock.trend);
+    System.out.println(randomStock.trend);
+    
+    tabsChangeColors();
     }
  
 
@@ -191,7 +219,9 @@ public void priceUpdate(Stocks[] stocks) {
     for (Stocks stock : stocks) {
         double mean = stock.stockPrice; // Use the current stock price as the mean
         double standardDeviation = stock.deviation;
-
+        if(day == 1 && month ==1){
+        stock.baseNumber = mean;
+        }
         // Generate a random price using the normal distribution
         double randomPrice = generateRandomPrice(mean, standardDeviation);
 
@@ -200,7 +230,7 @@ public void priceUpdate(Stocks[] stocks) {
        if(!stock.isBreakingNews){
         trend = shouldRollForTrendChange() ? getRandomTrend() : stock.trend;
         } else if(stock.isBreakingNews){
-        trend = breakingNewsTrend;
+        trend = breakingNewsStock.trend;
         }
         
         double newPrice = randomPrice + trend;
@@ -213,7 +243,9 @@ public void priceUpdate(Stocks[] stocks) {
         }
 
         stock.trend = trend; // Update the trend for the stock
-        stock.percentageChange = percentageChanger(mean, newPrice);
+        
+        stock.percentageChange = percentageChanger(stock.baseNumber, newPrice);
+        
         
     }
 
@@ -239,11 +271,11 @@ private double getRandomTrend() {
     double trend;
     trend = switch (randomValue) {
         // 20% down trend
-           case 0 -> -0.5;
+           case 0 -> -0.3;
                // 60% no trend
            case 1, 2, 3 -> 0;
                // 20% up trend
-           default -> 0.5;
+           default -> 0.3;
         };
 
     return trend;
@@ -307,7 +339,7 @@ private double getRandomTrend() {
         }
     }
     private void tabsChangeColors(){
-    int tabIndexNews = 3;
+    int tabIndexNews = 2;
     Color newColor = Color.YELLOW; 
 
     int selectedIndex = stocksTab.getSelectedIndex();
@@ -316,6 +348,8 @@ private double getRandomTrend() {
     } 
         
     }
+    
+    
 
 
     /**
@@ -370,10 +404,15 @@ private double getRandomTrend() {
         sharesOwn6 = new javax.swing.JLabel();
         sharesOwn7 = new javax.swing.JLabel();
         sharesOwn8 = new javax.swing.JLabel();
-        jPanel2 = new javax.swing.JPanel();
         jPanel3 = new javax.swing.JPanel();
         jLabel1 = new javax.swing.JLabel();
         accountBalance = new javax.swing.JLabel();
+        loan = new javax.swing.JLabel();
+        monthlyInterestRate = new javax.swing.JLabel();
+        spectedYearTax = new javax.swing.JLabel();
+        loanTextField = new javax.swing.JFormattedTextField();
+        takeLoan = new javax.swing.JButton();
+        repayLoan = new javax.swing.JButton();
         jPanel4 = new javax.swing.JPanel();
         jScrollPane1 = new javax.swing.JScrollPane();
         newsFeed = new javax.swing.JTextArea();
@@ -422,6 +461,7 @@ private double getRandomTrend() {
 
         stock5.setEditable(false);
         stock5.setText("jTextField1");
+        stock5.setToolTipText("");
 
         stock6.setEditable(false);
         stock6.setText("jTextField1");
@@ -729,23 +769,41 @@ private double getRandomTrend() {
 
         stocksTab.addTab("Stocks", jPanel1);
 
-        javax.swing.GroupLayout jPanel2Layout = new javax.swing.GroupLayout(jPanel2);
-        jPanel2.setLayout(jPanel2Layout);
-        jPanel2Layout.setHorizontalGroup(
-            jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGap(0, 543, Short.MAX_VALUE)
-        );
-        jPanel2Layout.setVerticalGroup(
-            jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGap(0, 247, Short.MAX_VALUE)
-        );
-
-        stocksTab.addTab("tab2", jPanel2);
-
         jLabel1.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
         jLabel1.setText("Poverty Bank");
 
         accountBalance.setText("Account Balance");
+
+        loan.setText("Loan");
+
+        monthlyInterestRate.setText("Monthly interest rate");
+
+        spectedYearTax.setText("Spected yearly tax Payment");
+
+        loanTextField.addFocusListener(new java.awt.event.FocusAdapter() {
+            public void focusGained(java.awt.event.FocusEvent evt) {
+                loanTextFieldFocusGained(evt);
+            }
+        });
+        loanTextField.addKeyListener(new java.awt.event.KeyAdapter() {
+            public void keyTyped(java.awt.event.KeyEvent evt) {
+                loanTextFieldKeyTyped(evt);
+            }
+        });
+
+        takeLoan.setText("Take Loan");
+        takeLoan.addMouseListener(new java.awt.event.MouseAdapter() {
+            public void mouseClicked(java.awt.event.MouseEvent evt) {
+                takeLoanMouseClicked(evt);
+            }
+        });
+
+        repayLoan.setText("Repay Loan");
+        repayLoan.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                repayLoanActionPerformed(evt);
+            }
+        });
 
         javax.swing.GroupLayout jPanel3Layout = new javax.swing.GroupLayout(jPanel3);
         jPanel3.setLayout(jPanel3Layout);
@@ -755,7 +813,17 @@ private double getRandomTrend() {
                 .addContainerGap()
                 .addGroup(jPanel3Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
                     .addComponent(jLabel1, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                    .addComponent(accountBalance, javax.swing.GroupLayout.DEFAULT_SIZE, 531, Short.MAX_VALUE))
+                    .addComponent(accountBalance, javax.swing.GroupLayout.DEFAULT_SIZE, 531, Short.MAX_VALUE)
+                    .addComponent(loan, javax.swing.GroupLayout.DEFAULT_SIZE, 531, Short.MAX_VALUE)
+                    .addComponent(monthlyInterestRate, javax.swing.GroupLayout.DEFAULT_SIZE, 531, Short.MAX_VALUE)
+                    .addComponent(spectedYearTax, javax.swing.GroupLayout.DEFAULT_SIZE, 531, Short.MAX_VALUE)
+                    .addGroup(jPanel3Layout.createSequentialGroup()
+                        .addComponent(loanTextField, javax.swing.GroupLayout.PREFERRED_SIZE, 126, javax.swing.GroupLayout.PREFERRED_SIZE)
+                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                        .addComponent(takeLoan)
+                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                        .addComponent(repayLoan)
+                        .addGap(0, 0, Short.MAX_VALUE)))
                 .addContainerGap())
         );
         jPanel3Layout.setVerticalGroup(
@@ -765,7 +833,18 @@ private double getRandomTrend() {
                 .addComponent(jLabel1)
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
                 .addComponent(accountBalance)
-                .addContainerGap(197, Short.MAX_VALUE))
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
+                .addComponent(loan)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
+                .addComponent(monthlyInterestRate)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
+                .addComponent(spectedYearTax)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, 84, Short.MAX_VALUE)
+                .addGroup(jPanel3Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                    .addComponent(loanTextField, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                    .addComponent(takeLoan)
+                    .addComponent(repayLoan))
+                .addContainerGap())
         );
 
         stocksTab.addTab("Bank", jPanel3);
@@ -813,7 +892,7 @@ private double getRandomTrend() {
 
         gameSpeedLabel.setText("X 1");
 
-        pauseButtom.setText("Pause");
+        pauseButtom.setText("Start Game");
         pauseButtom.addMouseListener(new java.awt.event.MouseAdapter() {
             public void mouseClicked(java.awt.event.MouseEvent evt) {
                 pauseButtomMouseClicked(evt);
@@ -863,7 +942,7 @@ private double getRandomTrend() {
 
         pack();
     }// </editor-fold>//GEN-END:initComponents
-
+    
     private void gameSpeedPlusMouseClicked(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_gameSpeedPlusMouseClicked
       increaseSpeed();
     }//GEN-LAST:event_gameSpeedPlusMouseClicked
@@ -876,107 +955,195 @@ private double getRandomTrend() {
     pauseGame();
     }//GEN-LAST:event_pauseButtomMouseClicked
 
+    private void stocksTabMouseClicked(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_stocksTabMouseClicked
+        // TODO add your handling code here:
+        stocksTab.setBackgroundAt(2, defaultColor);
+    }//GEN-LAST:event_stocksTabMouseClicked
+
     private void buy8MouseClicked(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_buy8MouseClicked
-        player.balance = player.buySell(nassp, true);
-        System.out.println(aple.stockShares);
+        if ((evt.getModifiersEx() & KeyEvent.SHIFT_DOWN_MASK) != 0){
+        player.balance = player.buySell(pns, true,true);
+        } else {
+        player.balance = player.buySell(pns, true,false);
+        }
+        System.out.println(pns.stockShares);
         updateTextFields();
     }//GEN-LAST:event_buy8MouseClicked
 
     private void sell8MouseClicked(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_sell8MouseClicked
-        player.balance = player.buySell(nassp, false);
-        System.out.println(aple.stockShares);
+         if ((evt.getModifiersEx() & KeyEvent.SHIFT_DOWN_MASK) != 0){
+        player.balance = player.buySell(pns, false,true);
+        } else {
+        player.balance = player.buySell(pns, false,false);
+         }
+        System.out.println(pns.stockShares);
         updateTextFields();
     }//GEN-LAST:event_sell8MouseClicked
 
     private void sell7MouseClicked(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_sell7MouseClicked
-        player.balance = player.buySell(donalsj, false);
-        System.out.println(aple.stockShares);
+         if ((evt.getModifiersEx() & KeyEvent.SHIFT_DOWN_MASK) != 0){
+        player.balance = player.buySell(nassp, false,true);
+        } else {
+        player.balance = player.buySell(nassp, false,false);
+         }
+        System.out.println(nassp.stockShares);
         updateTextFields();
     }//GEN-LAST:event_sell7MouseClicked
 
     private void buy7MouseClicked(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_buy7MouseClicked
-        player.balance = player.buySell(donalsj, true);
-        System.out.println(aple.stockShares);
+         if ((evt.getModifiersEx() & KeyEvent.SHIFT_DOWN_MASK) != 0){
+        player.balance = player.buySell(nassp, true,true);
+        } else {
+        player.balance = player.buySell(nassp, true,false);
+         }
+        System.out.println(nassp.stockShares);
         updateTextFields();
     }//GEN-LAST:event_buy7MouseClicked
 
     private void sell6MouseClicked(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_sell6MouseClicked
-        player.balance = player.buySell(pns, false);
-        System.out.println(aple.stockShares);
+         if ((evt.getModifiersEx() & KeyEvent.SHIFT_DOWN_MASK) != 0){
+        player.balance = player.buySell(donalsj, false,true);
+        } else {
+        player.balance = player.buySell(donalsj, false,false);
+         }
+        System.out.println(donalsj.stockShares);
         updateTextFields();
     }//GEN-LAST:event_sell6MouseClicked
 
     private void buy6MouseClicked(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_buy6MouseClicked
-        player.balance = player.buySell(pns, true);
-        System.out.println(aple.stockShares);
+        if ((evt.getModifiersEx() & KeyEvent.SHIFT_DOWN_MASK) != 0){
+        player.balance = player.buySell(donalsj, true,true);
+        } else {
+        player.balance = player.buySell(donalsj, true,false);
+        }
+        System.out.println(donalsj.stockShares);
         updateTextFields();
     }//GEN-LAST:event_buy6MouseClicked
 
     private void sell5MouseClicked(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_sell5MouseClicked
-        player.balance = player.buySell(anz, false);
-        System.out.println(aple.stockShares);
+        if ((evt.getModifiersEx() & KeyEvent.SHIFT_DOWN_MASK) != 0){
+        player.balance = player.buySell(anz, false,true);
+        } else {
+        player.balance = player.buySell(anz, false,false);
+        }
+        System.out.println(anz.stockShares);
         updateTextFields();
     }//GEN-LAST:event_sell5MouseClicked
 
     private void buy5MouseClicked(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_buy5MouseClicked
-        player.balance = player.buySell(anz, true);
-        System.out.println(aple.stockShares);
+        if ((evt.getModifiersEx() & KeyEvent.SHIFT_DOWN_MASK) != 0){
+        player.balance = player.buySell(anz, true,true);
+        } else {
+        player.balance = player.buySell(anz, true,false);
+        }
+        System.out.println(anz.stockShares);
         updateTextFields();
     }//GEN-LAST:event_buy5MouseClicked
 
     private void buy4MouseClicked(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_buy4MouseClicked
-        player.balance = player.buySell(amazonia, true);
+        if ((evt.getModifiersEx() & KeyEvent.SHIFT_DOWN_MASK) != 0){
+        player.balance = player.buySell(amazonia, true,true);
+        } else {
+        player.balance = player.buySell(amazonia, true,false);
+        }
         System.out.println(amazonia.stockShares);
         updateTextFields();
     }//GEN-LAST:event_buy4MouseClicked
 
     private void sell4MouseClicked(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_sell4MouseClicked
-        player.balance = player.buySell(amazonia, false);
+        if ((evt.getModifiersEx() & KeyEvent.SHIFT_DOWN_MASK) != 0){
+        player.balance = player.buySell(amazonia, false,true);
+        } else {
+        player.balance = player.buySell(amazonia, false,false);
+        }
         System.out.println(amazonia.stockShares);
         updateTextFields();
     }//GEN-LAST:event_sell4MouseClicked
 
     private void sell3MouseClicked(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_sell3MouseClicked
-        player.balance = player.buySell(fakebook, false);
+        if ((evt.getModifiersEx() & KeyEvent.SHIFT_DOWN_MASK) != 0){
+        player.balance = player.buySell(fakebook, false,true);
+        } else {
+        player.balance = player.buySell(fakebook, false,false);
+        }
         System.out.println(fakebook.stockShares);
         updateTextFields();
     }//GEN-LAST:event_sell3MouseClicked
 
     private void buy3MouseClicked(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_buy3MouseClicked
-        player.balance = player.buySell(fakebook, true);
+        if ((evt.getModifiersEx() & KeyEvent.SHIFT_DOWN_MASK) != 0){
+        player.balance = player.buySell(fakebook, true,true);
+        } else {
+        player.balance = player.buySell(fakebook, true,false);
+        }
         System.out.println(fakebook.stockShares);
         updateTextFields();
     }//GEN-LAST:event_buy3MouseClicked
 
     private void sell2MouseClicked(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_sell2MouseClicked
-        player.balance = player.buySell(gogle, false);
+        if ((evt.getModifiersEx() & KeyEvent.SHIFT_DOWN_MASK) != 0){
+        player.balance = player.buySell(gogle, false,true);
+        } else {
+        player.balance = player.buySell(gogle, false,false);
+        }
         System.out.println(gogle.stockShares);
         updateTextFields();
     }//GEN-LAST:event_sell2MouseClicked
 
     private void buy2MouseClicked(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_buy2MouseClicked
-        player.balance = player.buySell(gogle, true);
+        if ((evt.getModifiersEx() & KeyEvent.SHIFT_DOWN_MASK) != 0){
+        player.balance = player.buySell(gogle, true,true);
+        } else {
+        player.balance = player.buySell(gogle, true,false);
+        }
         System.out.println(gogle.stockShares);
         updateTextFields();
     }//GEN-LAST:event_buy2MouseClicked
 
     private void buy1MouseClicked(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_buy1MouseClicked
-        player.balance = player.buySell(aple,true);
+        if ((evt.getModifiersEx() & KeyEvent.SHIFT_DOWN_MASK) != 0){
+        player.balance = player.buySell(aple, true,true);
+        } else {
+        player.balance = player.buySell(aple, true,false);
+        }
         System.out.println(aple.stockShares);
         updateTextFields();
     }//GEN-LAST:event_buy1MouseClicked
 
     private void sell1MouseClicked(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_sell1MouseClicked
-        player.balance = player.buySell(aple, false);
+        if ((evt.getModifiersEx() & KeyEvent.SHIFT_DOWN_MASK) != 0){
+        player.balance = player.buySell(aple, false,true);
+        } else {
+        player.balance = player.buySell(aple, false,false);
+        }
         System.out.println(aple.stockShares);
         updateTextFields();
     }//GEN-LAST:event_sell1MouseClicked
 
-    private void stocksTabMouseClicked(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_stocksTabMouseClicked
+    private void repayLoanActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_repayLoanActionPerformed
         // TODO add your handling code here:
-        stocksTab.setBackgroundAt(3, defaultColor);
-    }//GEN-LAST:event_stocksTabMouseClicked
+    }//GEN-LAST:event_repayLoanActionPerformed
 
+    private void takeLoanMouseClicked(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_takeLoanMouseClicked
+     player.balance = player.takePayLoan(player.balance, true, parseDouble(loanTextField.getText()),loanTextField);   // TODO add your handling code here:
+     updateTextFields();
+     
+    }//GEN-LAST:event_takeLoanMouseClicked
+
+    private void loanTextFieldFocusGained(java.awt.event.FocusEvent evt) {//GEN-FIRST:event_loanTextFieldFocusGained
+    loanTextField.setText("");
+        // TODO add your handling code here:
+    }//GEN-LAST:event_loanTextFieldFocusGained
+
+    private void loanTextFieldKeyTyped(java.awt.event.KeyEvent evt) {//GEN-FIRST:event_loanTextFieldKeyTyped
+    char keyChar = evt.getKeyChar();
+
+    // Allow digits and dots (decimal point)
+    if (!Character.isDigit(keyChar) && keyChar != '.') {
+        evt.consume();
+    }
+    }//GEN-LAST:event_loanTextFieldKeyTyped
+    
     /**
      * @param args the command line arguments
      */
@@ -1010,7 +1177,7 @@ private double getRandomTrend() {
                 new Market().setVisible(true);
             }
         });
-        // Timer
+        
        
     }
     // Variables declaration - do not modify//GEN-BEGIN:variables
@@ -1029,10 +1196,12 @@ private double getRandomTrend() {
     private javax.swing.JButton jButton1;
     private javax.swing.JLabel jLabel1;
     private javax.swing.JPanel jPanel1;
-    private javax.swing.JPanel jPanel2;
     private javax.swing.JPanel jPanel3;
     private javax.swing.JPanel jPanel4;
     private javax.swing.JScrollPane jScrollPane1;
+    private javax.swing.JLabel loan;
+    private javax.swing.JFormattedTextField loanTextField;
+    private javax.swing.JLabel monthlyInterestRate;
     private javax.swing.JTextArea newsFeed;
     private javax.swing.JButton pauseButtom;
     private javax.swing.JLabel playerBalance;
@@ -1044,6 +1213,7 @@ private double getRandomTrend() {
     private javax.swing.JTextField price6;
     private javax.swing.JTextField price7;
     private javax.swing.JTextField price8;
+    private javax.swing.JButton repayLoan;
     private javax.swing.JButton sell1;
     private javax.swing.JButton sell2;
     private javax.swing.JButton sell3;
@@ -1060,6 +1230,7 @@ private double getRandomTrend() {
     private javax.swing.JLabel sharesOwn6;
     private javax.swing.JLabel sharesOwn7;
     private javax.swing.JLabel sharesOwn8;
+    private javax.swing.JLabel spectedYearTax;
     private javax.swing.JTextField stock1;
     private javax.swing.JTextField stock2;
     private javax.swing.JTextField stock3;
@@ -1069,6 +1240,7 @@ private double getRandomTrend() {
     private javax.swing.JTextField stock7;
     private javax.swing.JTextField stock8;
     private javax.swing.JTabbedPane stocksTab;
+    private javax.swing.JButton takeLoan;
     private javax.swing.JLabel unRealizedBlanceText;
     // End of variables declaration//GEN-END:variables
 

@@ -15,19 +15,21 @@ public class Stocks {
     double trend;
     double percentageChange;
     int stockShares = 0;
-    boolean isBreakingNews;
+    boolean isBreakingNews = false;
+    double baseNumber;
 
     
     
     
-    public Stocks(String name, double minPrice, double maxPrice, double standarDeviation, double stockTrend, double stockPercentageChange, int shares, boolean breakingNews){
+    public Stocks(String name, double minPrice, double maxPrice, double standarDeviation, double stockTrend, double stockPercentageChange, int shares, boolean isBreakingNews, double initialNumberPercentage){
     stockName = name;
     stockPrice = minPrice + (maxPrice - minPrice) * random.nextDouble();
     deviation = standarDeviation;
     trend = stockTrend;
     percentageChange = stockPercentageChange;
     shares = stockShares;
-    isBreakingNews = breakingNews;
+    this.isBreakingNews = isBreakingNews;
+    baseNumber = initialNumberPercentage;
   
  
     
